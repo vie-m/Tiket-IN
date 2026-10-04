@@ -33,7 +33,7 @@ if (isLocal) {
 console.log(`Connecting to ${url.hostname} / ${dbName} ...`);
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
-for (const file of ['schema.sql', 'views.sql', 'seed.sql']) {
+for (const file of ['schema.sql', 'views.sql', 'seed.sql', 'sample_orders.sql']) {
   const sql = fs.readFileSync(path.join(sqlDir, file), 'utf8');
   await client.query(sql);
   console.log(`Ran ${file}`);
