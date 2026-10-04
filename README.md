@@ -172,7 +172,4 @@ Browser -> **Vercel** (React site) -> **Vercel** (Express API as one serverless 
 
 Errors always look like `{ "error": "message" }`.
 
-## What I learned
-- _fill in_
-- _fill in_
-- _fill in_
+
