@@ -3,7 +3,11 @@
 Full-stack web app: create an account, log in, browse events, pick seats on a seat map and book tickets.
 The key feature: **two people can never book the same seat for the same event**, even if they click "Book" at the same moment.
 
-> Screenshot: _add a screenshot here_
+**Live demo:** https://tiket-in-ten.vercel.app  
+**API:** https://tiket-in-api.vercel.app/api/events  
+**Code:** https://github.com/vie-m/Tiket-IN
+
+> The demo runs on free hosting. The first request after a quiet period can take a few seconds to wake up. Use the demo accounts below to log in.
 
 ## Features
 - Register / login with hashed passwords and JWT sessions
@@ -105,16 +109,22 @@ The index `idx_tickets_event_id` is used. (The table is tiny, so PostgreSQL norm
 ## Setup
 **1. Start PostgreSQL**
 - Docker: `docker compose up -d`
-- Or a local PostgreSQL: install it, create a user/password, and put the right `DATABASE_URL` in `server/.env` (e.g. `postgresql://postgres:yourpassword@localhost:5432/ticketing`).
+- Or a local PostgreSQL: install it, create a user/password, and put the right `DATABASE_URL` in `server/.env` (e.g. `postgresql://postgres:YOUR_PASSWORD@localhost:5432/ticketing`).
+- Or a free hosted PostgreSQL such as Neon: paste its **direct** (non-pooled) connection string into `DATABASE_URL`. `db:setup` detects that it is not localhost and skips `CREATE DATABASE`.
 
 **2. Create tables, views and sample data**
 ```
 cd server
 cp .env.example .env      # then edit JWT_SECRET
 npm install
-npm run db:setup          # creates DB "ticketing" and runs schema.sql, views.sql, seed.sql
+npm run db:setup          # creates DB "ticketing" (local only), then runs schema.sql, views.sql, seed.sql, sample_orders.sql
 ```
-(or run the three files yourself with `psql -d ticketing -f database/schema.sql` etc., in that order)
+(or run the SQL files yourself in this order: `schema.sql`, `views.sql`, `seed.sql`, `sample_orders.sql`)
+
+| Command (in `server/`) | Accounts | Orders and tickets |
+|---|---|---|
+| `npm run db:setup` | **deleted**, recreated from seed | reset |
+| `npm run db:reset-bookings` | **kept** | reset to the demo orders |
 
 **3. Run the API** - `npm start` (http://localhost:4000)
 
@@ -125,6 +135,19 @@ npm install
 npm run dev               # http://localhost:5173
 ```
 `npm run build` makes a production build. Vite proxies `/api` to the server.
+
+## Deployment (all free, no credit card)
+Browser -> **Vercel** (React site) -> **Vercel** (Express API as one serverless function) -> **Neon** (PostgreSQL)
+
+| Part | Where | Settings |
+|---|---|---|
+| Database | Neon | Direct (non-pooled) connection string. Run `npm run db:setup` once against it. |
+| API | Vercel project, Root Directory `server`, preset **Other** | Env: `DATABASE_URL`, `JWT_SECRET`, `CLIENT_URL` (the website address, used for CORS) |
+| Website | Vercel project, Root Directory `client`, preset **Vite** | Env: `VITE_API_URL` (the API address, no trailing slash) |
+
+- `server/api/index.js` exports the Express app, and `server/vercel.json` sends every path to it. The routes, SQL and booking transaction are unchanged.
+- `client/vercel.json` rewrites all paths to `index.html`, so refreshing `/events/1` works.
+- The booking transaction uses one pooled client for `BEGIN` ... `COMMIT`, so `FOR UPDATE` locking works on Neon. `npm run test:concurrency` was run against the deployed API (`API_URL=https://tiket-in-api.vercel.app/api npm run test:concurrency`) and gave 1 success, 9 conflicts.
 
 ## Demo accounts
 | Role | Email | Password |
